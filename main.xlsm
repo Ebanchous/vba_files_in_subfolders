@@ -1,0 +1,130 @@
+
+Sub Filelist()
+Dim V As String
+Dim BrowseFolder As String
+Dim D As Date
+
+Dim Dnow As Date
+
+    D = Application.InputBox("Please choose date as startig date to earch (dd.mm.yyyy). If set zero (0), current date will be used ", , , , , , FormatDateTime(Date, vbLongDate))
+    If D = "0" Then D = Round(Date)
+            If IsDate(D) = True Then
+            Else
+            MsgBox ("Soething was wrong, current date chosen")
+            Exit Sub
+            End If
+      'D = Round(D)
+      'MsgBox (D)
+      
+With Application.FileDialog(msoFileDialogFolderPicker)
+.Title = "Please choose folder"
+.Show
+On Error Resume Next
+Err.Clear
+V = .SelectedItems(1)
+If Err.Number <> 0 Then
+MsgBox "Notning was selected"
+Exit Sub
+End If
+End With
+BrowseFolder = CStr(V)
+
+        Sheets("Filelist").Select
+        Worksheets("filelist").Rows("1:65536").Select
+        Selection.Clear
+        Worksheets("filelist").Cells(1, 1).Select
+        
+
+With Range("A2:E2")
+.Font.Bold = True
+.Font.Size = 12
+End With
+Range("A1").Value = "Change date: " & D
+Range("A2").Value = "File name"
+Range("B1").Value = D
+Range("B2").Value = "Path"
+Range("c2").Value = "Size"
+Range("d2").Value = "Creation date"
+Range("e2").Value = "Change time"
+'Range("F2").Value = "Author"
+Cells("B1").NumberFormat = "dd.mm.yyyy;@"
+
+
+ListFilesInFolder BrowseFolder, True
+
+End Sub
+Private Sub ListFilesInFolder(ByVal SourceFolderName As String, ByVal IncludeSubFolders As Boolean)
+Dim FSO As Object
+Dim Sourcefolder As Object
+Dim Subfolder As Object
+Dim Fileitem As Object
+Dim R As Long
+Dim D1 As Date
+Dim D As Date
+
+
+D = Range("B1").Value
+'D = Date
+
+Set FSO = CreateObject("scripting.filesystemObject")
+Set Sourcefolder = FSO.getfolder(SourceFolderName)
+R = Range("A65536").End(xlUp).Row + 1
+
+
+For Each Fileitem In Sourcefolder.Files
+D1 = Fileitem.datelastmodified
+
+If D1 >= D Then
+
+        Cells(R, 1).Formula = Fileitem.Name
+        Cells(R, 2).Formula = Fileitem.Path '"=hyperlink(""&fileitem,path&"")"
+        Cells(R, 3).Formula = Fileitem.Size
+        Cells(R, 3).NumberFormat = "#,##0"
+        Cells(R, 4).Formula = Fileitem.Datecreated
+        Cells(R, 5).Formula = Fileitem.datelastmodified
+        If D = Date Then
+        Cells(R, 5).NumberFormat = "h:mm;@"
+        End If
+        
+        'Cells(R, 6).Formula = Fileitem.author
+            R = R + 1
+            X = Sourcefolder.Path
+On Error Resume Next
+End If
+Next Fileitem
+
+If IncludeSubFolders Then
+For Each Subfolder In Sourcefolder.subfolders
+ListFilesInFolder Subfolder.Path, True
+Next Subfolder
+
+End If
+
+'Columns("A:E").AutoFit
+ '   ActiveWorkbook.Worksheets("Filelist").AutoFilter.Sort.SortFields.Clear
+ '   ActiveWorkbook.Worksheets("Filelist").AutoFilter.Sort.SortFields.Add Key:= _
+ '       Range("E2"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+ '       xlSortNormal
+    Rows("2:2").Select
+    Selection.AutoFilter
+    ActiveWorkbook.Worksheets("Filelist").AutoFilter.Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets("Filelist").AutoFilter.Sort.SortFields.Add Key:= _
+        Range("E2"), SortOn:=xlSortOnValues, Order:=xlDescending, DataOption:= _
+        xlSortNormal
+    With ActiveWorkbook.Worksheets("Filelist").AutoFilter.Sort
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+    End With
+
+    Sheets("Filelist").Select
+    Range("A1").Select
+
+Set Fileitem = Nothing
+Set Sourcefolder = Nothing
+Set FSO = Nothing
+'Range("B1").Value = ""
+
+End Sub
